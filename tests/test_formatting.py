@@ -1,4 +1,3 @@
-"""Tests for terminal formatting helpers."""
 
 from ai_text_analyzer.utils.formatting import progress_bar, mini_bar
 

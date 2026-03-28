@@ -1,4 +1,3 @@
-"""Tests for prompt builder functions."""
 
 from ai_text_analyzer.analyzer.prompts import build_analysis_prompt, build_narrative_prompt
 

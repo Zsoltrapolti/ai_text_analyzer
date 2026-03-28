@@ -1,4 +1,3 @@
-"""Tests for AnalysisResult.from_dict() deserialization."""
 
 import pytest
 from ai_text_analyzer.models import AnalysisResult, SentimentResult, ReadabilityResult, Theme

@@ -1,9 +1,4 @@
-"""
-ai_text_analyzer.cli.main
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-Entry point: wires together args → analyzer → renderer.
-Handles all user-facing errors and exit codes.
-"""
+
 
 import os
 import sys
@@ -34,7 +29,6 @@ def _resolve_text(args) -> str:
 
 
 def _show_spinner(message: str) -> None:
-    """Block for a single spinner tick to signal activity (non-blocking style)."""
     sys.stdout.write(
         f"\r{Color.CYAN}{spinner_frame(0)}{Color.RESET}  {message}"
     )

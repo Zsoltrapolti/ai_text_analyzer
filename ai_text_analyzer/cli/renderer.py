@@ -1,10 +1,4 @@
-"""
-ai_text_analyzer.cli.renderer
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Renders an AnalysisResult to the terminal.
-Knows about both domain models and formatting utilities.
-Does not know about argparse or the Anthropic client.
-"""
+
 
 import sys
 from typing import Iterator
@@ -30,7 +24,6 @@ def _sentiment_color(label: str) -> str:
 
 
 def render_result(result: AnalysisResult) -> None:
-    """Print the full analysis report."""
 
     # Overview
     section_header("OVERVIEW")
@@ -75,7 +68,6 @@ def render_result(result: AnalysisResult) -> None:
 
 
 def render_narrative(chunks: Iterator[str]) -> None:
-    """Stream and print the editorial narrative."""
     section_header("EDITORIAL INSIGHT  (streaming)")
     print(f"\n  {Color.DIM}", end="", flush=True)
     for chunk in chunks:

@@ -1,8 +1,4 @@
-"""
-ai_text_analyzer.analyzer.prompts
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Prompt templates for Claude API calls.
-"""
+
 
 ANALYSIS_SYSTEM_PROMPT = (
     "You are an expert text analyst. "

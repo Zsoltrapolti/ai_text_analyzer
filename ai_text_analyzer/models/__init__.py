@@ -1,8 +1,4 @@
-"""
-ai_text_analyzer.models
-~~~~~~~~~~~~~~~~~~~~~~~
-Typed data models for analysis results.
-"""
+
 
 from dataclasses import dataclass, field
 from typing import List, Optional

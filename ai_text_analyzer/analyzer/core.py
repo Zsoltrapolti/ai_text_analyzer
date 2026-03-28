@@ -1,10 +1,4 @@
-"""
-ai_text_analyzer.analyzer.core
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Thin wrapper around the Anthropic API.
-Responsible for making API calls and returning raw dicts.
-All business logic lives in the caller.
-"""
+
 
 import json
 from typing import Iterator

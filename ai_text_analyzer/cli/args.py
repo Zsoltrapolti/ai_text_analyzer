@@ -1,8 +1,4 @@
-"""
-ai_text_analyzer.cli.args
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-Argument parser definition, separated from main() for testability.
-"""
+
 
 import argparse
 
