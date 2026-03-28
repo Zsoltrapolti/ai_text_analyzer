@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ai-text-analyzer"
+version = "1.0.0"
+description = "Multi-dimensional text analysis powered by Anthropic Claude"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "groq>=0.9.0",
+    "flask>=3.0",
+    "flask-cors>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+text-analyzer = "ai_text_analyzer.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

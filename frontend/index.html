@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Text Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d0d0f;
+    --surface:   #141416;
+    --border:    #222226;
+    --border-hi: #333338;
+    --text:      #e8e8e0;
+    --muted:     #6b6b72;
+    --accent:    #c8f060;
+    --accent-dim:#8aaa30;
+    --danger:    #ff5f57;
+    --warn:      #ffbd2e;
+    --good:      #28ca41;
+    --mono:      'DM Mono', monospace;
+    --serif:     'DM Serif Display', serif;
+    --sans:      'Syne', sans-serif;
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* ── layout ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── left panel ── */
+  .panel-left {
+    padding: 3rem 3rem 3rem 4rem;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .wordmark {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 3rem;
+  }
+
+  .wordmark span { color: var(--accent); }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.4rem, 4vw, 3.6rem);
+    line-height: 1.05;
+    letter-spacing: -.01em;
+    color: var(--text);
+    margin-bottom: .75rem;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: .875rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+    max-width: 320px;
+  }
+
+  textarea {
+    flex: 1;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: .85rem;
+    line-height: 1.7;
+    padding: 1.25rem;
+    resize: none;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  textarea::placeholder { color: var(--muted); }
+  textarea:focus { border-color: var(--border-hi); }
+
+  .input-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: .75rem;
+  }
+
+  .char-count {
+    font-family: var(--mono);
+    font-size: .75rem;
+    color: var(--muted);
+  }
+
+  .btn-analyze {
+    background: var(--accent);
+    color: #0d0d0f;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: .875rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: .65rem 1.75rem;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+  }
+
+  .btn-analyze:hover  { background: #d8ff70; }
+  .btn-analyze:active { transform: scale(.97); }
+  .btn-analyze:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  /* ── right panel ── */
+  .panel-right {
+    padding: 3rem 4rem 3rem 3rem;
+    overflow-y: auto;
+  }
+
+  /* ── empty state ── */
+  .empty-state {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 1rem;
+    opacity: .35;
+  }
+
+  .empty-state .icon {
+    font-size: 3rem;
+    line-height: 1;
+  }
+
+  .empty-state p {
+    font-size: .875rem;
+    color: var(--muted);
+    max-width: 220px;
+    line-height: 1.6;
+  }
+
+  /* ── loading ── */
+  .loading {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1.5rem;
+  }
+
+  .loader-ring {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading p {
+    font-family: var(--mono);
+    font-size: .8rem;
+    color: var(--muted);
+    letter-spacing: .1em;
+  }
+
+  /* ── results ── */
+  .results { display: none; }
+
+  .result-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-header .lang-tag {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+  }
+
+  .summary-text {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    line-height: 1.45;
+    color: var(--text);
+    font-style: italic;
+  }
+
+  /* ── stat grid ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .35s, transform .35s;
+  }
+
+  .stat-card.visible { opacity: 1; transform: none; }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: .4rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: .75rem;
+    color: var(--muted);
+    margin-top: .2rem;
+  }
+
+  /* ── section titles ── */
+  .section-title {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  /* ── sentiment bar ── */
+  .sentiment-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .sentiment-label {
+    font-weight: 700;
+    font-size: 1.1rem;
+    min-width: 80px;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    width: 0%;
+    transition: width 1s cubic-bezier(.16,1,.3,1);
+  }
+
+  .bar-fill.positive { background: var(--good); }
+  .bar-fill.negative { background: var(--danger); }
+  .bar-fill.neutral  { background: var(--warn); }
+  .bar-fill.mixed    { background: var(--accent); }
+
+  .conf-badge {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--muted);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  /* ── themes ── */
+  .theme-list { display: flex; flex-direction: column; gap: .6rem; }
+
+  .theme-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity .3s, transform .3s;
+  }
+
+  .theme-row.visible { opacity: 1; transform: none; }
+
+  .theme-name {
+    font-size: .875rem;
+    font-weight: 500;
+    min-width: 110px;
+    color: var(--text);
+  }
+
+  .theme-bar-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .theme-bar-fill {
+    height: 100%;
+    background: var(--accent-dim);
+    border-radius: 999px;
+    width: 0%;
+    transition: width .9s cubic-bezier(.16,1,.3,1);
+  }
+
+  .theme-pct {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--muted);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .theme-keywords {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--muted);
+    margin-top: .1rem;
+  }
+
+  /* ── tone tags ── */
+  .tone-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 2rem; }
+
+  .tone-tag {
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--accent);
+    padding: .3rem .65rem;
+    letter-spacing: .06em;
+  }
+
+  /* ── suggestions / strengths ── */
+  .list-items { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 2rem; }
+
+  .list-item {
+    display: flex;
+    gap: .75rem;
+    align-items: flex-start;
+    font-size: .875rem;
+    line-height: 1.5;
+    color: var(--text);
+    opacity: 0;
+    transition: opacity .3s;
+  }
+
+  .list-item.visible { opacity: 1; }
+
+  .list-item .bullet {
+    font-family: var(--mono);
+    color: var(--accent);
+    font-size: .75rem;
+    margin-top: .15rem;
+    flex-shrink: 0;
+  }
+
+  .list-item.suggestion .bullet { color: var(--warn); }
+
+  /* ── readability ring ── */
+  .readability-row {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .ring-wrap { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+
+  .ring-wrap svg { transform: rotate(-90deg); }
+
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 5; }
+  .ring-fg { fill: none; stroke-width: 5; stroke-linecap: round;
+             stroke-dasharray: 188; stroke-dashoffset: 188;
+             transition: stroke-dashoffset 1.2s cubic-bezier(.16,1,.3,1); }
+
+  .ring-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text);
+  }
+
+  .readability-meta { display: flex; flex-direction: column; gap: .3rem; }
+  .readability-meta .grade { font-weight: 600; font-size: .95rem; }
+  .readability-meta .detail { font-size: .8rem; color: var(--muted); font-family: var(--mono); }
+
+  /* ── error ── */
+  .error-box {
+    display: none;
+    background: #1a0a0a;
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: var(--mono);
+    font-size: .8rem;
+    color: var(--danger);
+  }
+
+  /* ── responsive ── */
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: 1fr; }
+    .panel-left { position: static; height: auto; padding: 2rem; border-right: none; border-bottom: 1px solid var(--border); }
+    .panel-right { padding: 2rem; }
+    textarea { min-height: 180px; flex: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── LEFT: input ── -->
+  <div class="panel-left">
+    <div class="wordmark">AI Text Analyzer &nbsp;·&nbsp; <span>Groq</span></div>
+
+    <h1>Analyze<br>any <em>text</em><br>instantly.</h1>
+    <p class="subtitle">Sentiment, readability, themes and actionable suggestions — powered by Llama 3.3 70B.</p>
+
+    <textarea id="input" placeholder="Paste or type your text here…" spellcheck="false"></textarea>
+
+    <div class="input-meta">
+      <span class="char-count" id="char-count">0 characters</span>
+      <button class="btn-analyze" id="btn" onclick="analyze()">Analyze →</button>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: results ── -->
+  <div class="panel-right" id="right">
+
+    <div class="empty-state" id="empty">
+      <div class="icon">◈</div>
+      <p>Paste text on the left and hit Analyze to see insights here.</p>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="loader-ring"></div>
+      <p>Analyzing with Llama 3.3…</p>
+    </div>
+
+    <div class="error-box" id="error-box"></div>
+
+    <div class="results" id="results">
+
+      <!-- header -->
+      <div class="result-header">
+        <div class="lang-tag" id="r-lang"></div>
+        <div class="summary-text" id="r-summary"></div>
+      </div>
+
+      <!-- stat grid -->
+      <div class="stat-grid">
+        <div class="stat-card" id="sc-words">
+          <div class="stat-label">Words</div>
+          <div class="stat-value" id="r-words">—</div>
+        </div>
+        <div class="stat-card" id="sc-read">
+          <div class="stat-label">Readability</div>
+          <div class="stat-value" id="r-read-score">—</div>
+          <div class="stat-sub" id="r-grade"></div>
+        </div>
+        <div class="stat-card" id="sc-sent">
+          <div class="stat-label">Sentiment</div>
+          <div class="stat-value" id="r-sent-label">—</div>
+          <div class="stat-sub" id="r-conf"></div>
+        </div>
+        <div class="stat-card" id="sc-complex">
+          <div class="stat-label">Complex words</div>
+          <div class="stat-value" id="r-complex">—</div>
+          <div class="stat-sub">of total vocabulary</div>
+        </div>
+      </div>
+
+      <!-- sentiment bar -->
+      <div class="section-title">Sentiment score</div>
+      <div class="sentiment-row">
+        <div class="sentiment-label" id="r-sent-label2">—</div>
+        <div class="bar-track">
+          <div class="bar-fill" id="r-sent-bar"></div>
+        </div>
+        <div class="conf-badge" id="r-conf2">—</div>
+      </div>
+
+      <!-- readability ring -->
+      <div class="section-title">Readability</div>
+      <div class="readability-row">
+        <div class="ring-wrap">
+          <svg viewBox="0 0 64 64" width="72" height="72">
+            <circle class="ring-bg" cx="32" cy="32" r="30"/>
+            <circle class="ring-fg" id="ring-fg" cx="32" cy="32" r="30"/>
+          </svg>
+          <div class="ring-label" id="ring-label">—</div>
+        </div>
+        <div class="readability-meta">
+          <div class="grade" id="r-grade2">—</div>
+          <div class="detail" id="r-asl">avg sentence: — words</div>
+          <div class="detail" id="r-complex2">complex words: —%</div>
+        </div>
+      </div>
+
+      <!-- tone -->
+      <div class="section-title">Tone</div>
+      <div class="tone-tags" id="r-tone"></div>
+
+      <!-- themes -->
+      <div class="section-title">Key themes</div>
+      <div class="theme-list" id="r-themes"></div>
+
+      <!-- strengths -->
+      <div class="section-title" style="margin-top:2rem">Strengths</div>
+      <div class="list-items" id="r-strengths"></div>
+
+      <!-- suggestions -->
+      <div class="section-title">Suggestions</div>
+      <div class="list-items" id="r-suggestions"></div>
+
+    </div><!-- /results -->
+  </div><!-- /panel-right -->
+</div><!-- /shell -->
+
+<script>
+const $ = id => document.getElementById(id);
+
+// char counter
+$('input').addEventListener('input', () => {
+  const n = $('input').value.length;
+  $('char-count').textContent = n + ' character' + (n !== 1 ? 's' : '');
+});
+
+function show(el) { el.style.display = 'flex'; }
+function hide(el) { el.style.display = 'none'; }
+function showBlock(el) { el.style.display = 'block'; }
+
+function sentimentClass(label) {
+  const l = label.toLowerCase();
+  if (l.includes('positive')) return 'positive';
+  if (l.includes('negative')) return 'negative';
+  if (l.includes('neutral'))  return 'neutral';
+  return 'mixed';
+}
+
+function ringColor(score) {
+  if (score >= 70) return '#28ca41';
+  if (score >= 40) return '#ffbd2e';
+  return '#ff5f57';
+}
+
+function stagger(els, cls, delay = 80) {
+  els.forEach((el, i) => setTimeout(() => el.classList.add(cls), i * delay));
+}
+
+async function analyze() {
+  const text = $('input').value.trim();
+  if (text.length < 10) { alert('Please enter at least 10 characters.'); return; }
+
+  $('btn').disabled = true;
+  hide($('empty'));
+  hide($('results'));
+  $('error-box').style.display = 'none';
+  show($('loading'));
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+
+    hide($('loading'));
+
+    if (!res.ok || data.error) {
+      $('error-box').textContent = data.error || 'Unknown error.';
+      showBlock($('error-box'));
+      return;
+    }
+
+    render(data);
+
+  } catch (e) {
+    hide($('loading'));
+    $('error-box').textContent = 'Could not reach the server. Is server.py running?';
+    showBlock($('error-box'));
+  } finally {
+    $('btn').disabled = false;
+  }
+}
+
+function render(d) {
+  // header
+  $('r-lang').textContent = d.language ? d.language.toUpperCase() : '';
+  $('r-summary').textContent = d.summary || '';
+
+  // stat cards
+  $('r-words').textContent = d.word_count ?? '—';
+  $('r-read-score').textContent = d.readability?.score ?? '—';
+  $('r-grade').textContent = d.readability?.grade_level ?? '';
+  $('r-sent-label').textContent = d.sentiment?.label ?? '—';
+  $('r-conf').textContent = (d.sentiment?.confidence ?? '—') + '% confidence';
+  $('r-complex').textContent = Math.round((d.readability?.complex_word_ratio ?? 0) * 100) + '%';
+
+  // sentiment bar
+  const sc = sentimentClass(d.sentiment?.label || '');
+  $('r-sent-label2').textContent = d.sentiment?.label ?? '—';
+  const bar = $('r-sent-bar');
+  bar.className = 'bar-fill ' + sc;
+  $('r-conf2').textContent = (d.sentiment?.confidence ?? 0) + '%';
+  setTimeout(() => { bar.style.width = (d.sentiment?.score ?? 0) + '%'; }, 50);
+
+  // readability ring
+  const rs = d.readability?.score ?? 0;
+  const circumference = 188;
+  $('ring-fg').style.stroke = ringColor(rs);
+  $('ring-label').textContent = rs;
+  $('r-grade2').textContent = d.readability?.grade_level ?? '—';
+  $('r-asl').textContent = 'avg sentence: ' + (d.readability?.avg_sentence_length ?? '—') + ' words';
+  $('r-complex2').textContent = 'complex words: ' + Math.round((d.readability?.complex_word_ratio ?? 0) * 100) + '%';
+  setTimeout(() => {
+    $('ring-fg').style.strokeDashoffset = circumference - (rs / 100) * circumference;
+  }, 50);
+
+  // tone
+  $('r-tone').innerHTML = (d.tone || []).map(t =>
+    `<span class="tone-tag">${t}</span>`
+  ).join('');
+
+  // themes
+  $('r-themes').innerHTML = (d.themes || []).slice(0, 5).map(t => `
+    <div class="theme-row">
+      <div>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <span class="theme-name">${t.theme}</span>
+          <div class="theme-bar-track"><div class="theme-bar-fill" data-pct="${t.relevance}"></div></div>
+          <span class="theme-pct">${t.relevance}%</span>
+        </div>
+        <div class="theme-keywords">${(t.keywords || []).join(' · ')}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // strengths
+  $('r-strengths').innerHTML = (d.strengths || []).map(s => `
+    <div class="list-item">
+      <span class="bullet">✓</span>
+      <span>${s}</span>
+    </div>
+  `).join('');
+
+  // suggestions
+  $('r-suggestions').innerHTML = (d.suggestions || []).map((s, i) => `
+    <div class="list-item suggestion">
+      <span class="bullet">${i + 1}.</span>
+      <span>${s}</span>
+    </div>
+  `).join('');
+
+  showBlock($('results'));
+
+  // stagger animations
+  const cards = ['sc-words','sc-read','sc-sent','sc-complex'].map(id => $(id));
+  stagger(cards, 'visible', 80);
+
+  setTimeout(() => {
+    document.querySelectorAll('.theme-row').forEach((el, i) => {
+      setTimeout(() => {
+        el.classList.add('visible');
+        const fill = el.querySelector('.theme-bar-fill');
+        if (fill) fill.style.width = fill.dataset.pct + '%';
+      }, i * 100);
+    });
+    stagger(document.querySelectorAll('.list-item'), 'visible', 60);
+  }, 300);
+}
+
+// allow Ctrl+Enter to submit
+$('input').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') analyze();
+});
+</script>
+</body>
+</html>
